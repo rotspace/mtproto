@@ -123,6 +123,66 @@ func (appConfig Configuration) Check() error {
 	return nil
 }
 
+func OptAuthFile(authkeyfile string) func(*MTProto) error {
+	return func(m *MTProto) (err error) {
+		m.f, err = os.OpenFile(authkeyfile, os.O_RDWR|os.O_CREATE, 0600)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func OptAppConfig(cnf Configuration) func(*MTProto) error {
+	return func(m *MTProto) (err error) {
+		m.appConfig = cnf
+		return cnf.Check()
+	}
+}
+
+var (
+	DefaultConfiguration, _ = NewConfiguration(41994,
+		"269069e15c81241f5670c397941016a2",
+		"0.0.1",
+		"",
+		"",
+		"")
+)
+
+const DefaultTelegramAddress = "149.154.167.50:443"
+
+func New(opts ...func(*MTProto) error) (m *MTProto, err error) {
+	m = new(MTProto)
+	m.appConfig = *DefaultConfiguration
+
+	for _, fn := range opts {
+		err = fn(m)
+		if err != nil {
+			return
+		}
+	}
+
+	err = m.appConfig.Check()
+	if err != nil {
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	m.sessionId = rand.Int63()
+
+	err = m.readData()
+	if err == nil {
+		m.encrypted = true
+	} else {
+		err = nil
+		m.addr = DefaultTelegramAddress
+		m.useIPv6 = false
+		m.encrypted = false
+	}
+
+	return
+}
+
 func NewMTProto(newSession bool, serverAddr string, useIPv6 bool, authkeyfile string, appConfig Configuration) (*MTProto, error) {
 	var err error
 
