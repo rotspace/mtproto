@@ -358,7 +358,8 @@ func (m *MTProto) sendRoutine() {
 		case x := <-m.queueSend:
 			err := m.sendPacket(x.msg, x.resp)
 			if err != nil {
-				log.Fatalln("SendRoutine:", err)
+				log.Println("SendRoutine:", err)
+				return
 			}
 		}
 	}
@@ -376,11 +377,13 @@ func (m *MTProto) readRoutine() {
 				// Connection closed by server, trying to reconnect
 				err = m.reconnect(m.addr)
 				if err != nil {
-					log.Fatalln("ReadRoutine: ", err)
+					log.Println("ReadRoutine: ", err)
+					return
 				}
 			}
 			if err != nil {
-				log.Fatalln("ReadRoutine: ", err)
+				log.Println("ReadRoutine: ", err)
+				return
 			}
 			ch <- data
 		}(ch)

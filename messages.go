@@ -3,6 +3,7 @@ package mtproto
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 )
 
 func (m *MTProto) MessagesGetHistory(peer TL, offsetId, offsetDate, addOffset, limit, maxId, minId int32) (*TL, error) {
@@ -61,8 +62,15 @@ func (m *MTProto) MessagesGetDialogs(opts ...MessagesGetOptions) (TL_messages_di
 
 	resp, ok := (*tl).(TL_messages_dialogsSlice)
 	if !ok {
-		err = fmt.Errorf("Cannot convert to dialog slice")
-		return resp, err
+		if respDialogs, ok := (*tl).(TL_messages_dialogs); ok {
+			resp.Chats = respDialogs.Chats
+			resp.Dialogs = respDialogs.Dialogs
+			resp.Messages = respDialogs.Messages
+			resp.Users = respDialogs.Users
+		} else {
+			err = fmt.Errorf("Cannot convert to dialog slice, type %s", reflect.TypeOf(*tl))
+			return resp, err
+		}
 	}
 	return resp, nil
 }
